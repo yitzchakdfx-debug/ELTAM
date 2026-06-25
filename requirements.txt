@@ -1,0 +1,9 @@
+# DFX_ate_GUI runtime dependencies
+# (third-party imports detected in DFX_ate_GUI/src)
+PySide6
+reportlab
+PyPDF2
+pyserial
+cryptography
+python-dotenv
+pyvisa
