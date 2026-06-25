@@ -9,9 +9,11 @@ no driver or Qt imports — so both layers can import it freely.
 from __future__ import annotations
 
 # instrument_connections name keys (the Connections dialog edits these rows).
-POWER_SUPPLY = "Power Supply"      # IDRC-040-076HR, serial
-DAQ = "DAQ-9600"                   # GW Instek DAQ-9600, VISA
-ELECTRONIC_LOAD = "Electronic Load"  # Prodigit 3300G/3315G via Prologix
+# Names are role-based and stable (stored in the DB); the model behind each role
+# is the ELTAM bench hardware below. All three are addressed over VISA.
+POWER_SUPPLY = "Power Supply"      # GW Instek GPP-3610H, VISA (USB-CDC/LAN/GPIB)
+DAQ = "DAQ-9600"                   # GW Instek DAQ-9600 + DAQ-901 mux, VISA
+ELECTRONIC_LOAD = "Electronic Load"  # GW Instek PEL-3031AE, VISA (USB-CDC/LAN/GPIB)
 
 #: Order shown in the Connections dialog.
 BENCH_INSTRUMENT_NAMES: tuple[str, ...] = (POWER_SUPPLY, DAQ, ELECTRONIC_LOAD)

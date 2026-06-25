@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from config import INSTRUMENTS
 from drivers.bench.bench_spec import BENCH_INSTRUMENT_NAMES
 from logic.database_manager import DatabaseManager
-from logic.db.bench_config import DAQ_CHANNEL_MAP, DAQ_RELAY_CHANNEL, LOAD_SLOT
+from logic.db.bench_config import DAQ_CHANNEL_MAP, DAQ_RELAY_CHANNEL
 from ui.preflight_worker import PreflightWorker
 
 
@@ -38,9 +38,9 @@ class ConnectionsDialog(QDialog):
         root.addWidget(
             QLabel(
                 "Per-instrument address. Examples:\n"
-                "  • Serial:   COM3|115200|N|1\n"
-                "  • VISA:     TCPIP0::192.168.0.50::INSTR  or  USB0::0x0957::…::INSTR\n"
-                "  • Prologix: COM5|115200|N|1|GPIB:6"
+                "  • VISA (PS / Load / DAQ):  TCPIP0::192.168.0.50::INSTR\n"
+                "      USB0::0x2A8D::…::INSTR   or   ASRL3::INSTR (USB-CDC COM3)\n"
+                "  • Serial (e.g. Arduinos):  COM3|115200|N|1"
             )
         )
 
@@ -76,12 +76,6 @@ class ConnectionsDialog(QDialog):
         self._daq_relay_field.setText(bench.get(DAQ_RELAY_CHANNEL, ""))
         bench_form.addRow("DAQ relay channel:", self._daq_relay_field)
 
-        self._load_slot_field = QLineEdit()
-        self._load_slot_field.setObjectName("bench_field_load_slot")
-        self._load_slot_field.setPlaceholderText("3300G mainframe slot (1-4)")
-        self._load_slot_field.setText(bench.get(LOAD_SLOT, ""))
-        bench_form.addRow("Load slot (1-4):", self._load_slot_field)
-
         self._daq_map_field = QLineEdit()
         self._daq_map_field.setObjectName("bench_field_daq_channel_map")
         self._daq_map_field.setPlaceholderText("logical=physical, e.g. 3=103,4=104")
@@ -112,7 +106,6 @@ class ConnectionsDialog(QDialog):
         connections = {name: edit.text().strip() for name, edit in self._fields.items()}
         bench_cfg = {
             DAQ_RELAY_CHANNEL: self._daq_relay_field.text().strip(),
-            LOAD_SLOT: self._load_slot_field.text().strip(),
             DAQ_CHANNEL_MAP: self._daq_map_field.text().strip(),
         }
         return connections, bench_cfg
@@ -151,16 +144,12 @@ class ConnectionsDialog(QDialog):
         # Global bench wiring
         bench_before = self._db.get_bench_config()
         daq_val = self._daq_relay_field.text().strip()
-        slot_val = self._load_slot_field.text().strip()
         map_val = self._daq_map_field.text().strip()
         if daq_val != bench_before.get(DAQ_RELAY_CHANNEL, ""):
             changed.append(DAQ_RELAY_CHANNEL)
-        if slot_val != bench_before.get(LOAD_SLOT, ""):
-            changed.append(LOAD_SLOT)
         if map_val != bench_before.get(DAQ_CHANNEL_MAP, ""):
             changed.append(DAQ_CHANNEL_MAP)
         self._db.set_bench_config(DAQ_RELAY_CHANNEL, daq_val)
-        self._db.set_bench_config(LOAD_SLOT, slot_val)
         self._db.set_bench_config(DAQ_CHANNEL_MAP, map_val)
 
         if changed:

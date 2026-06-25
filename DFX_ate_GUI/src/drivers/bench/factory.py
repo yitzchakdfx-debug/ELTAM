@@ -22,15 +22,14 @@ from drivers.bench.instrument_base import ConnInfo
 from drivers.bench.sim_bus import SimBus
 from drivers.instruments.daq_9600.driver import Daq9600
 from drivers.instruments.daq_9600.mock import Daq9600Mock
-from drivers.instruments.idrc_040_076hr.driver import IdrcPowerSupply
-from drivers.instruments.idrc_040_076hr.mock import IdrcPowerSupplyMock
-from drivers.instruments.prodigit_3300.driver import Prodigit3300Load
-from drivers.instruments.prodigit_3300.mock import Prodigit3300LoadMock
+from drivers.instruments.gpp_3610h.driver import Gpp3610hPowerSupply
+from drivers.instruments.gpp_3610h.mock import Gpp3610hPowerSupplyMock
+from drivers.instruments.pel_3031ae.driver import Pel3031Load
+from drivers.instruments.pel_3031ae.mock import Pel3031LoadMock
 
 # bench_config keys (mirror logic.db.bench_config; duplicated to keep drivers/
 # free of a logic/ import).
 _KEY_DAQ_RELAY_CHANNEL = "daq_relay_channel"
-_KEY_LOAD_SLOT = "load_slot"
 _KEY_DAQ_CHANNEL_MAP = "daq_channel_map"
 
 # Default per-measurement out-of-spec probability for the Simulation bench.
@@ -72,15 +71,9 @@ def build_sim_bench(
     """Coupled Simulation bench: three mocks sharing one `SimBus`."""
     cfg = bench_cfg or {}
     bus = SimBus()
-    source = IdrcPowerSupplyMock(bus=bus, fail_prob=fail_prob, seed=_seed(seed, 0))
+    source = Gpp3610hPowerSupplyMock(bus=bus, fail_prob=fail_prob, seed=_seed(seed, 0))
     dmm = Daq9600Mock(bus=bus, fail_prob=fail_prob, seed=_seed(seed, 1))
-    load = Prodigit3300LoadMock(
-        load_slot=_int(cfg.get(_KEY_LOAD_SLOT), default=1, lo=1, hi=4),
-        gpib_address=0,  # placeholder; the mock ignores it (never a real address)
-        bus=bus,
-        fail_prob=fail_prob,
-        seed=_seed(seed, 2),
-    )
+    load = Pel3031LoadMock(bus=bus, fail_prob=fail_prob, seed=_seed(seed, 2))
     sim_conn = ConnInfo("sim", "MOCK")
     return BenchDriver(
         source=source, load=load, dmm=dmm,
@@ -155,34 +148,28 @@ def _hardware_specs(connections: dict[str, str], bench_cfg: dict[str, str]):
     Raises BenchConfigError listing every missing/invalid item so the operator
     sees them all at once.
     """
-    ps_conn = parse_serial(connections.get(bench_spec.POWER_SUPPLY, ""))
+    # All three SPREOS/ELTAM bench instruments speak VISA: the GPP-3610H PS and
+    # the PEL-3031AE load enumerate over USB-CDC (addressable as ASRL COM) / LAN /
+    # GPIB, and the DAQ-9600 is native VISA. No serial/Prologix/GPIB-address or
+    # load-slot config is needed anymore.
+    ps_conn = parse_visa(connections.get(bench_spec.POWER_SUPPLY, ""))
     daq_conn = parse_visa(connections.get(bench_spec.DAQ, ""))
-    load_conn = parse_prologix(connections.get(bench_spec.ELECTRONIC_LOAD, ""))
-    gpib = load_conn.params.get("gpib_address")
-    slot = _int(bench_cfg.get(_KEY_LOAD_SLOT), default=None, lo=1, hi=4)
+    load_conn = parse_visa(connections.get(bench_spec.ELECTRONIC_LOAD, ""))
 
     errors: list[str] = []
     if not ps_conn.resource:
-        errors.append(f"{bench_spec.POWER_SUPPLY}: COM port not set in Connections")
+        errors.append(f"{bench_spec.POWER_SUPPLY}: VISA resource not set in Connections")
     if not daq_conn.resource:
         errors.append(f"{bench_spec.DAQ}: VISA resource not set in Connections")
     if not load_conn.resource:
-        errors.append(f"{bench_spec.ELECTRONIC_LOAD}: COM port not set in Connections")
-    if gpib is None:
-        errors.append(
-            f"{bench_spec.ELECTRONIC_LOAD}: GPIB address missing "
-            "(add 'GPIB:<n>' to its connection string)"
-        )
-    if slot is None:
-        errors.append("bench_config 'load_slot' not set (1-4)")
+        errors.append(f"{bench_spec.ELECTRONIC_LOAD}: VISA resource not set in Connections")
     if errors:
         raise BenchConfigError(errors)
 
     return [
-        ("source", bench_spec.POWER_SUPPLY, IdrcPowerSupply(), ps_conn),
+        ("source", bench_spec.POWER_SUPPLY, Gpp3610hPowerSupply(), ps_conn),
         ("dmm", bench_spec.DAQ, Daq9600(), daq_conn),
-        ("load", bench_spec.ELECTRONIC_LOAD,
-         Prodigit3300Load(load_slot=slot, gpib_address=gpib), load_conn),
+        ("load", bench_spec.ELECTRONIC_LOAD, Pel3031Load(), load_conn),
     ]
 
 

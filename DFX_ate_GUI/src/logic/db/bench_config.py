@@ -5,7 +5,7 @@ live in `instrument_connections`) and NOT per-test (those live in
 `test_versions.connection_params` / the per-version channel map). Currently:
 
     daq_relay_channel  DAQ-9600 switch channel the `setlogic` relay is wired to
-    load_slot          3300F mainframe slot (1-4) holding the load module
+    daq_channel_map    logical->physical DAQ channel remap, e.g. "3=103,4=104"
 
 Values are stored as TEXT; callers cast (e.g. ``int(...)``) at read time.
 """
@@ -18,8 +18,10 @@ from logic.db.connection import open_conn
 
 # Known keys — callers should use these constants, not raw strings.
 DAQ_RELAY_CHANNEL = "daq_relay_channel"
-LOAD_SLOT = "load_slot"
 DAQ_CHANNEL_MAP = "daq_channel_map"   # logical->physical, e.g. "3=103,4=104"
+# DEPRECATED: the Prodigit mainframe needed a load slot (1-4); the PEL-3031AE is a
+# single load with no slot. Constant kept for backward compat with old DB rows.
+LOAD_SLOT = "load_slot"
 
 
 def get_bench_config(db_path: Path) -> dict[str, str]:

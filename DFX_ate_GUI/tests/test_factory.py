@@ -71,17 +71,18 @@ class ParseDaqMapTests(unittest.TestCase):
 
 class HardwareBuildTests(unittest.TestCase):
     def _good_connections(self):
+        # All three bench instruments are VISA now (GPP-3610H PS, DAQ-9600, PEL-3031AE).
         return {
-            bench_spec.POWER_SUPPLY: "COM3|115200|N|1",
+            bench_spec.POWER_SUPPLY: "USB0::0x2A8D::0x0000::SIM::INSTR",
             bench_spec.DAQ: "TCPIP0::192.168.0.50::INSTR",
-            bench_spec.ELECTRONIC_LOAD: "COM5|115200|N|1|GPIB:6",
+            bench_spec.ELECTRONIC_LOAD: "ASRL5::INSTR",
         }
 
     def test_build_hardware_bench_with_valid_config(self):
         bench = factory.build_bench(
             hardware_mode=True,
             connections=self._good_connections(),
-            bench_cfg={"load_slot": "2", "daq_relay_channel": "101", "daq_channel_map": "3=103,4=104"},
+            bench_cfg={"daq_relay_channel": "101", "daq_channel_map": "3=103,4=104"},
         )
         self.assertIsInstance(bench, BenchDriver)
 
@@ -89,8 +90,8 @@ class HardwareBuildTests(unittest.TestCase):
         with self.assertRaises(factory.BenchConfigError) as ctx:
             factory.build_bench(hardware_mode=True, connections={}, bench_cfg={})
         msgs = ctx.exception.messages
-        # one per missing item: PS port, DAQ resource, load port, load GPIB, load_slot
-        self.assertGreaterEqual(len(msgs), 4)
+        # one per missing VISA resource: PS, DAQ, load
+        self.assertGreaterEqual(len(msgs), 3)
 
     def test_preflight_reports_config_error(self):
         ok, report = factory.preflight(connections={}, bench_cfg={})
