@@ -1,0 +1,34 @@
+# Python virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables (secrets — never commit)
+.env
+
+# VS Code
+.vscode/
+
+# Build files
+build/
+dist/
+
+# GUI git-history backup bundle (local only)
+DFX_ate_GUI_history.bundle
+
+# Runtime data / artifacts (created by the app at run time)
+*.db
+*.log
+*.lock
+app.lock
+src/data/results/
+DFX_ate_GUI/src/data/results/
+DFX_ate_GUI/src/data/logs/
+DFX_ate_GUI/tmp/
+DFX_ate_GUI/src/tmp/
+
+# Windows
+Thumbs.db
+Desktop.ini
